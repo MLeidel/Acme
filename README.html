@@ -1,0 +1,51 @@
+<h1>Internet Browser</h1>
+<h2>Features</h2>
+<h3>Does not implement:</h3>
+<pre><code>    extentions
+    bookmarks
+    seaving of passwords or form data
+    (superficial?) enhancement settings
+</code></pre>
+<h3>Does implement:</h3>
+<pre><code>    developer tools
+    persistent history
+    cookie management
+    cache management
+    user settings
+    window geometry
+</code></pre>
+<h2>files</h2>
+<p>cookies.sqlite</p>
+<pre><code>    database of active cookies
+</code></pre>
+<p>neo.dat</p>
+<pre><code>    config data for user settings
+        homepage, search engine, defaults font info, and Alt key snippets
+</code></pre>
+<p>neo.py</p>
+<pre><code>    source code for Neo browser
+</code></pre>
+<p>goodcookie.txt</p>
+<pre><code>    contains list of cookie host names not to delete
+    from the cookies database
+</code></pre>
+<p>listcook.py</p>
+<pre><code>    prints out a list of unique active cookie host names  
+    to help you manage the goodcookie.txt file
+</code></pre>
+<p>delcookies.py</p>
+<pre><code>    deletes all active cookies from cookies.sqlite that
+    ARE NOT LISTED in goodcookie.txt
+</code></pre>
+<p>delcache.py</p>
+<pre><code>    REMOVE ALL persistent cache data for neo.py, neo.pyc
+</code></pre>
+<p>browser_history.txt</p>
+<pre><code>    persistent history limited to N recent URLs
+</code></pre>
+<h2>Installation</h2>
+<pre><code class="language-bash">sudo apt update
+sudo apt install python3-gi python3-gi-cairo libgirepository1.0-dev gir1.2-gtk-3.0 gir1.2-webkit2-4.1
+sudo apt install gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
+sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-libav
+</code></pre>
