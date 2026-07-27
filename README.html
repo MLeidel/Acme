@@ -1,18 +1,18 @@
 <h1>Internet Browser</h1>
 <h2>Features</h2>
-<h3>Does not implement:</h3>
-<pre><code>    extentions
-    bookmarks
-    seaving of passwords or form data
-    (superficial?) enhancement settings
-</code></pre>
-<h3>Does implement:</h3>
+<h3>Implements:</h3>
 <pre><code>    developer tools
     persistent history
     cookie management
     cache management
     user settings
     window geometry
+</code></pre>
+<h3>Does not implement:</h3>
+<pre><code>    extentions
+    bookmarks
+    password manager or form data
+    (superficial?) enhancement settings
 </code></pre>
 <h2>files</h2>
 <p>cookies.sqlite</p>
@@ -26,8 +26,8 @@
 <pre><code>    source code for Neo browser
 </code></pre>
 <p>goodcookie.txt</p>
-<pre><code>    contains list of cookie host names not to delete
-    from the cookies database
+<pre><code>    contains list of cookie host names that delcookies.py
+    will NOT delete from the cookies database
 </code></pre>
 <p>listcook.py</p>
 <pre><code>    prints out a list of unique active cookie host names  
@@ -38,7 +38,8 @@
     ARE NOT LISTED in goodcookie.txt
 </code></pre>
 <p>delcache.py</p>
-<pre><code>    REMOVE ALL persistent cache data for neo.py, neo.pyc
+<pre><code>    REMOVE ALL persistent cache data for neo.py, neo.pyc  
+    usually found in .cache directory
 </code></pre>
 <p>browser_history.txt</p>
 <pre><code>    persistent history limited to N recent URLs
@@ -49,3 +50,22 @@ sudo apt install python3-gi python3-gi-cairo libgirepository1.0-dev gir1.2-gtk-3
 sudo apt install gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
 sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-libav
 </code></pre>
+<h2>A note about settings</h2>
+<p>Neo has only 12 settings you can change:</p>
+<ol>
+<li>Your homepage URL</li>
+<li>The search engine with query string of your choice</li>
+<li>numeric - Limit of persistent history to allow</li>
+<li>yes/no - Jump to new tabs when opened</li>
+<li>Default browser font family name</li>
+<li>Default browser font size</li>
+<li>Default browser monospace font family name</li>
+<li>Default browser monospace font size</li>
+<li>Alt-1</li>
+<li>Alt-2</li>
+<li>Alt-3</li>
+<li>Alt-4</li>
+</ol>
+<p>Alt-1 through 4 can be any kind of text you with to insert into an HTML input text field.<br />
+(I have certain strings that I get tired of typeing :)</p>
+<hr />
