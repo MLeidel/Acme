@@ -10,7 +10,7 @@
 </code></pre>
 <h3>Does not implement:</h3>
 <pre><code>    extentions
-    bookmarks
+    bookmarks*
     password manager or form data
     (superficial?) enhancement settings
 </code></pre>
@@ -53,7 +53,7 @@ sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-libav
 <h2>A note about settings</h2>
 <p>Neo has only 12 settings you can change:</p>
 <ol>
-<li>Your homepage URL</li>
+<li>Your homepage URL (you have to pick one, the browser doesn't have one)</li>
 <li>The search engine with query string of your choice</li>
 <li>numeric - Limit of persistent history to allow</li>
 <li>yes/no - Jump to new tabs when opened</li>
@@ -68,4 +68,33 @@ sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-libav
 </ol>
 <p>Alt-1 through 4 can be any kind of text you with to insert into an HTML input text field.<br />
 (I have certain strings that I get tired of typeing :)</p>
+<h2>Running on Windows WSL</h2>
+<p>Running on Windows WSL can be tricky, but this is what worked well for me.</p>
+<ol>
+<li>Make sure WSL is activated and you can get to the Linux shell (any distro is fine)</li>
+<li>
+<p>In the root of your user directory create a bash file with this:</p>
+<pre><code>#!/usr/bin/bash
+
+cd /mnt/c/neo
+export GTK_THEME=Adwaita:dark
+export GTK_APPLICATION_PREFER_DARK_THEME=1
+./neo.pyc
+</code></pre>
+</li>
+<li>
+<p>In your Windows user directory create this command file:</p>
+<pre><code>wsl.exe --cd ~ -- bash -l -c "./runn.sh"
+</code></pre>
+</li>
+<li>
+<p>Then create a shorcut on your desktop that will execute the cmd file in 3.</p>
+</li>
+</ol>
+<hr />
+<p>* Bookmarks<br />
+Bookmarking is purposely left out of Neo.<br />
+Why? I do not like/use them.<br />
+Instead, clicking the bookmark's button appends them to a file<br />
+the path of which you can specify in settings.</p>
 <hr />

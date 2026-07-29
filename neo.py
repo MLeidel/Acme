@@ -31,6 +31,15 @@ homepage = ""
 searchen = ""
 histlimit = ""
 gotab = ""
+deffont = ""
+defsize = 0
+monfont = ""
+monsize = 0
+bkmpath = ""
+alt1 = ""
+alt2 = ""
+alt3 =  ""
+alt4 =  ""
 
 
 blockcount = 0  # for addblocking
@@ -66,10 +75,10 @@ class BrowserTab(Gtk.VBox):
         settings = self.web_view.get_settings()
         settings.set_enable_developer_extras(True)
         settings.set_javascript_can_open_windows_automatically(True)
-        settings.set_property("default-font-family", deffont)      # get these from neo.dat
-        settings.set_property("default-font-size", int(defsize))
-        settings.set_property("monospace-font-family", monfont)
-        settings.set_property("default-monospace-font-size", int(monsize))
+        settings.set_property("default-font-family", current_settings['deffont'])      # get these from neo.dat
+        settings.set_property("default-font-size", int(current_settings['defsize']))
+        settings.set_property("monospace-font-family", current_settings['monfont'])
+        settings.set_property("default-monospace-font-size", int(current_settings['monsize']))
 
         # # # # #
 
@@ -77,7 +86,7 @@ class BrowserTab(Gtk.VBox):
         if start_url != None:
             self.web_view.load_uri(start_url)
         else:
-            self.web_view.load_uri(homepage)
+            self.web_view.load_uri(current_settings['homepage'])
 
         self.web_view.connect("decide-policy", self.on_decide_policy)
         self.web_view.connect("mouse-target-changed", self.displayuri)
@@ -97,6 +106,7 @@ class BrowserTab(Gtk.VBox):
         self.button_back = Gtk.ToolButton(stock_id=Gtk.STOCK_GO_BACK)
         self.button_forward = Gtk.ToolButton(stock_id=Gtk.STOCK_GO_FORWARD)
         self.button_refresh = Gtk.ToolButton(stock_id=Gtk.STOCK_REFRESH)
+        self.button_home = Gtk.ToolButton(stock_id=Gtk.STOCK_HOME)
         self.address_bar = Gtk.Entry()
 
         button_go.connect("clicked", self.load_page)
@@ -106,11 +116,13 @@ class BrowserTab(Gtk.VBox):
         self.button_back.connect("clicked", lambda x: self.web_view.go_back())
         self.button_forward.connect("clicked", lambda x: self.web_view.go_forward())
         self.button_refresh.connect("clicked", lambda x: self.web_view.reload())
+        self.button_home.connect("clicked", lambda x: self.web_view.load_uri(current_settings['homepage']))
 
         url_box = Gtk.HBox()
         url_box.pack_start(self.button_back, False, False, 0)
         url_box.pack_start(self.button_forward, False, False, 0)
         url_box.pack_start(self.button_refresh, False, False, 0)
+        url_box.pack_start(self.button_home, False, False, 0)
         url_box.pack_start(self.address_bar, True, True, 0)
         url_box.pack_start(button_go, False, False, 0)
         self.pack_start(url_box, False, False, 0)   # move here
@@ -147,6 +159,7 @@ class BrowserTab(Gtk.VBox):
 
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 
     def open_devtools(self):
         ''' Shift-Ctrl-I opens Developer Tools
@@ -210,7 +223,7 @@ class BrowserTab(Gtk.VBox):
                 self.address_bar.set_text(url)
             self.web_view.load_uri(url)
         else:
-            search_url = searchen + url.replace(" ", "+")  # searchen is outside the classes
+            search_url = current_settings['searchen'] + url.replace(" ", "+")  # searchen is outside the classes
             self.address_bar.set_text(search_url)
             self.web_view.load_uri(search_url)
 
@@ -231,7 +244,7 @@ class BrowserTab(Gtk.VBox):
                 url = "https://" + url
             target_uri = url
         else:
-            target_uri = searchen + url.replace(" ", "+")
+            target_uri = current_settings['searchen'] + url.replace(" ", "+")
 
         if self.browser:
             self.browser.open_new_tab(None, target_uri)
@@ -341,6 +354,9 @@ class Browser(Gtk.Window):
 
         self.tool_bar = Gtk.HBox()
 
+        self.button_bookmarx = Gtk.ToolButton()
+        self.button_bookmarx.set_icon_name("bookmark-new-symbolic")
+        self.button_bookmarx.set_tooltip_text("Bookmarks")
         self.button_settings = Gtk.ToolButton()
         self.button_settings.set_icon_name("emblem-system")
         self.button_settings.set_tooltip_text("User Settings")
@@ -362,6 +378,7 @@ class Browser(Gtk.Window):
         self.button_devtools.set_icon_name("utilities-terminal")
         self.button_devtools.set_tooltip_text("Developer Tools")
 
+        self.button_bookmarx.connect("clicked", self.save_active_tab_info)
         self.button_settings.connect("clicked", self.open_settings_dialog)
         self.button_new_tab.connect("clicked", self.open_new_tab)
         self.button_close_tab.connect("clicked", self.close_current_tab)
@@ -374,13 +391,14 @@ class Browser(Gtk.Window):
 
         self.tool_bar.pack_start(self.button_settings, False, False, 0)
         self.tool_bar.pack_start(self.button_close_tab, False, False, 0)
+        self.tool_bar.pack_start(self.button_bookmarx, False, False, 0)
         self.tool_bar.pack_start(self.button_home, False, False, 0)
         self.tool_bar.pack_start(self.button_new_tab, False, False, 0)
-        self.tool_bar.pack_start(self.button_find, False, False, 0)
-        self.tool_bar.pack_start(self.button_printer, False, False, 0)
-        self.tool_bar.pack_start(self.button_history, False, False, 0)
         self.tool_bar.pack_start(self.button_cookies, False, False, 0)
         self.tool_bar.pack_start(self.button_devtools, False, False, 0)
+        self.tool_bar.pack_start(self.button_history, False, False, 0)
+        self.tool_bar.pack_start(self.button_find, False, False, 0)
+        self.tool_bar.pack_start(self.button_printer, False, False, 0)
 
         self.status_label = Gtk.Label(label="")
         self.status_label.set_halign(Gtk.Align.START)
@@ -423,7 +441,7 @@ class Browser(Gtk.Window):
 
 
     def on_startup(self):
-        # hide/adjust widgets here
+        ''' some startup stuff '''
         current_page = self.notebook.get_current_page()
         self.tabs[current_page][0].find_box.hide()
         print("WebKit:", wk.get_major_version(),
@@ -432,10 +450,12 @@ class Browser(Gtk.Window):
 
 
     def set_status(self, text):
+        ''' Status-Bar '''
         self.status_label.set_text(text or "")
 
 
     def get_current_tab(self):
+        ''' returns the active web_view page handle '''
         page_num = self.notebook.get_current_page()
         if page_num < 0:
             return None
@@ -443,10 +463,11 @@ class Browser(Gtk.Window):
 
 
     def open_devtools_for_current_tab(self):
+        ''' displays the Dev Tools window '''
         tab = self.get_current_tab()
         if tab:
-            print("line 448")
             tab.open_devtools()
+
 
     def on_devtools_clicked(self, widget):
         self.open_devtools_for_current_tab()
@@ -455,7 +476,7 @@ class Browser(Gtk.Window):
     def open_in_browser(self, url):
         # This is where you connect to your browser app
         # opens in new tab
-        current_page = self.notebook.get_current_page()
+        # current_page = self.notebook.get_current_page()
         # self.tabs[current_page][0].web_view.load_uri(url)
         self.open_new_tab(None, url)
 
@@ -466,6 +487,7 @@ class Browser(Gtk.Window):
         win.connect("destroy", lambda w: None)
         win.set_keep_above(True)
         win.show_all()
+
 
     def on_key_press(self, widget, event):
         ''' Direct actions from keypress combinations '''
@@ -506,9 +528,7 @@ class Browser(Gtk.Window):
     def tab_changed(self, notebook, current_page, index):
         if index is None:
             return
-
         tab = self.tabs[index][0]
-
         title = tab.web_view.get_title()
         if title:
             self.set_title("Neo Browser - " + title)
@@ -537,6 +557,7 @@ class Browser(Gtk.Window):
         tab.web_view.connect("notify::title", self.title_changed)
         return tab
 
+
     def close_current_tab(self, widget):
         if self.notebook.get_n_pages() == 1:
             return
@@ -550,7 +571,7 @@ class Browser(Gtk.Window):
         page_tuple = (self.create_tab(), Gtk.Label(label="New Tab"))
         self.tabs.insert(current_page + 1, page_tuple)
         self.notebook.insert_page(page_tuple[0], page_tuple[1], current_page + 1)
-        if gotab.lower() == "yes":  # neo.dat
+        if current_settings['gotab'].lower() == "yes":  # neo.dat
             self.notebook.set_current_page(current_page + 1)
 
         if uri:
@@ -559,14 +580,22 @@ class Browser(Gtk.Window):
         return page_tuple[0]
 
 
+    def save_active_tab_info(self, e=None):
+        ''' store user bookmark '''
+        tab = self.get_current_tab()
+        with open(current_settings['bkmpath'], "a", encoding="utf-8") as fout:
+            fout.write(tab.web_view.get_title() + " <=> " + tab.web_view.get_uri() + "\n")
+
+
     def raise_find_dialog(self, widget):
         current_page = self.notebook.get_current_page()
         self.tabs[current_page][0].find_box.show_all()
         self.tabs[current_page][0].find_entry.grab_focus()
 
+
     def goto_home(self, widget):
         current_page = self.notebook.get_current_page()
-        self.tabs[current_page][0].web_view.load_uri(homepage)
+        self.tabs[current_page][0].web_view.load_uri(current_settings['homepage'])
         # current_page = self.notebook.get_current_page()
         # self.tabs[current_page][0].find_box.hide()
 
@@ -694,8 +723,6 @@ class Browser(Gtk.Window):
         width, height = self.get_size()
         x, y = self.get_position()
         with open(os.path.join(script_dir, "wingeo"), "w") as fout:
-            # fout.write(homepage + "\n")
-            # fout.write(searchen + "\n")
             fout.write(str(width) + "\n")
             fout.write(str(height) + "\n")
             fout.write(str(x) + "\n")
@@ -704,7 +731,7 @@ class Browser(Gtk.Window):
 
     def adjust_history_file(self):
         ''' trim browser_history to histlimit deduped '''
-        N = int(histlimit)  # from neo.dat
+        N = int(current_settings['histlimit'])  # from neo.dat
 
         with open('browser_history.txt', 'r', encoding='utf-8') as f:
             unique_lines = list(dict.fromkeys(reversed(f.readlines())))
@@ -965,6 +992,7 @@ class SettingsDialog(Gtk.Dialog):
             ("defsize", "Default Font Size"),
             ("monfont", "Monospace Font"),
             ("monsize", "Monospace Font Size"),
+            ("bkmpath", "bookmarks path"),
             # Add your Alt-snippet fields here:
             ("1", "Alt-1 Snippet"),
             ("2", "Alt-2 Snippet"),
@@ -1011,6 +1039,7 @@ def save_settings_to_file(settings, filename="neo.dat"):
         str(settings["defsize"]),
         settings["monfont"],
         str(settings["monsize"]),
+        settings["bkmpath"],
         settings["1"],
         settings["2"],
         settings["3"],
@@ -1041,10 +1070,11 @@ deffont = dat[4]
 defsize = dat[5]
 monfont = dat[6]
 monsize = dat[7]
-alt1 = dat[8]
-alt2 = dat[9]
-alt3 = dat[10]
-alt4 = dat[11]
+bkmpath = dat[8]
+alt1 = dat[9]
+alt2 = dat[10]
+alt3 = dat[11]
+alt4 = dat[12]
 
 current_settings = {
     "homepage": homepage,
@@ -1055,6 +1085,7 @@ current_settings = {
     "defsize": defsize,
     "monfont": monfont,
     "monsize": monsize,
+    "bkmpath": bkmpath,
     "1":alt1,
     "2":alt2,
     "3":alt3,

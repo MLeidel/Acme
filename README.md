@@ -14,7 +14,7 @@
 ### Does not implement:
 
         extentions
-        bookmarks
+        bookmarks*
         password manager or form data
         (superficial?) enhancement settings
        
@@ -70,7 +70,7 @@ sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-libav
 
 Neo has only 12 settings you can change:
     
-1. Your homepage URL
+1. Your homepage URL (you have to pick one, the browser doesn't have one)
 2. The search engine with query string of your choice
 3. numeric - Limit of persistent history to allow
 4. yes/no - Jump to new tabs when opened
@@ -85,5 +85,36 @@ Neo has only 12 settings you can change:
     
 Alt-1 through 4 can be any kind of text you with to insert into an HTML input text field.  
 (I have certain strings that I get tired of typeing :)
+
+## Running on Windows WSL
+
+Running on Windows WSL can be tricky, but this is what worked well for me.
+
+1. Make sure WSL is activated and you can get to the Linux shell (any distro is fine)
+2. In the root of your user directory create a bash file with this:
+    
+        #!/usr/bin/bash
+        
+        cd /mnt/c/neo
+        export GTK_THEME=Adwaita:dark
+        export GTK_APPLICATION_PREFER_DARK_THEME=1
+        ./neo.pyc
+              
+3. In your Windows user directory create this command file:
+        
+        wsl.exe --cd ~ -- bash -l -c "./runn.sh"
+        
+4. Then create a shorcut on your desktop that will execute the cmd file in 3.
+
+---
+
+\* Bookmarks  
+Bookmarking is purposely left out of Neo.  
+Why? I do not like/use them.  
+Instead, clicking the bookmark's button appends them to a file  
+the path of which you can specify in settings.
+
+
+
 
 ---
