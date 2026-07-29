@@ -18,8 +18,8 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 gi.require_version('Gdk', '3.0')
 gi.require_version("Gtk", "3.0")        # GUI toolkit
-gi.require_version("WebKit2", "4.1")     # Web content engine
-from gi.repository import Gtk, WebKit2 as wk, Gdk, Pango
+gi.require_version("WebKit2", "4.1")    # Web content engine
+from gi.repository import Gtk, WebKit2 as wk, Gdk, Pango, Gio
 
 # for neo.dat and wingeo
 glink = ""
@@ -41,7 +41,7 @@ alt2 = ""
 alt3 =  ""
 alt4 =  ""
 
-
+blocker_on = 1  # mode switch for Ad blocker start ON
 blockcount = 0  # for addblocking
 
 # class #
@@ -84,7 +84,7 @@ class BrowserTab(Gtk.VBox):
 
 
         if start_url != None:
-            self.web_view.load_uri(start_url)
+            self.web_view.load_uri(start_url)  # command line arg 1
         else:
             self.web_view.load_uri(current_settings['homepage'])
 
@@ -92,9 +92,12 @@ class BrowserTab(Gtk.VBox):
         self.web_view.connect("mouse-target-changed", self.displayuri)
         self.web_view.connect("button-press-event", self.on_button_press)
         self.web_view.connect("load-changed", self.on_load_changed)
-
         self.web_view.connect("create", self.on_create)
-        # self.web_view.connect("ready-to-show", self.on_ready_to_show)
+
+        # needed for printing from context menu
+        self.print_action = Gio.SimpleAction.new("print-page", None)
+        self.print_action.connect("activate", self.on_print_page)
+        self.web_view.connect("context-menu", self.on_context_menu)
 
         # Inspector setup
         inspector = self.web_view.get_inspector()
@@ -305,22 +308,25 @@ class BrowserTab(Gtk.VBox):
                 decision.use()
 
         # add blocking
-        req = decision.get_request()
-        uri = req.get_uri() or ""
+        if blocker_on:
+            req = decision.get_request()
+            uri = req.get_uri() or ""
 
-        parsed = urlparse(uri)
-        host = parsed.hostname or ""   # <-- equivalent to “host”, derived from URI
+            parsed = urlparse(uri)
+            host = parsed.hostname or ""   # <-- equivalent to “host”, derived from URI
 
-        haystack = (host + " " + uri).lower()
-        for kw in BLOCK_SUBSTRINGS:
-            if kw in haystack:
-                decision.ignore()  # cancel the request
-                blockcount += 1
-                self.browser.set_status(str(blockcount))
-                return
+            haystack = (host + " " + uri).lower()
+            for kw in BLOCK_SUBSTRINGS:
+                if kw in haystack:
+                    decision.ignore()  # cancel the request
+                    blockcount += 1
+                    self.browser.set_status(str(blockcount))
+                    return
 
-        decision.use()  # allow it
+            decision.use()  # allow it
 
+
+    # printing stuff - to handle button and context menu
 
     def on_print_clicked(self):
         print_op = wk.PrintOperation.new(self.web_view)
@@ -330,6 +336,23 @@ class BrowserTab(Gtk.VBox):
             print("Print error occurred")
         else:
             print("Print applied")
+
+    def on_print_page(self, action, parameter):
+        self.do_print()
+
+    def do_print(self):
+        print("Printing...")
+        self.on_print_clicked()
+
+    def on_context_menu(self, web_view, context_menu, hit_test_result, event):
+        item = wk.ContextMenuItem.new_from_gaction(
+            self.print_action,
+            "Print Page",
+            None
+        )
+        context_menu.append(item)
+        return False
+
 
 # class #
 class Browser(Gtk.Window):
@@ -377,6 +400,9 @@ class Browser(Gtk.Window):
         self.button_devtools = Gtk.ToolButton()
         self.button_devtools.set_icon_name("utilities-terminal")
         self.button_devtools.set_tooltip_text("Developer Tools")
+        self.button_blocker = Gtk.ToolButton()
+        self.button_blocker.set_icon_name("security-high-symbolic")
+        self.button_blocker.set_tooltip_text("Toggle Pop-up Ad Blocking")
 
         self.button_bookmarx.connect("clicked", self.save_active_tab_info)
         self.button_settings.connect("clicked", self.open_settings_dialog)
@@ -388,8 +414,10 @@ class Browser(Gtk.Window):
         self.button_printer.connect("clicked", self.on_print_clicked)
         self.button_devtools.connect("clicked", self.on_devtools_clicked)
         self.button_history.connect("clicked", self.open_persist_history_dialog)
+        self.button_blocker.connect("clicked", self.toggle_blocker)
 
         self.tool_bar.pack_start(self.button_settings, False, False, 0)
+        self.tool_bar.pack_start(self.button_blocker, False, False, 0)
         self.tool_bar.pack_start(self.button_close_tab, False, False, 0)
         self.tool_bar.pack_start(self.button_bookmarx, False, False, 0)
         self.tool_bar.pack_start(self.button_home, False, False, 0)
@@ -447,6 +475,17 @@ class Browser(Gtk.Window):
         print("WebKit:", wk.get_major_version(),
               wk.get_minor_version(),
               wk.get_micro_version())
+
+
+    def toggle_blocker(self, e=None):
+        global blocker_on
+        if blocker_on == 1:
+            blocker_on = 0
+            self.set_status("Ad Blocker turned OFF")
+        else:
+            blocker_on = 1
+            self.set_status("Ad Blocker turned ON")
+
 
 
     def set_status(self, text):
