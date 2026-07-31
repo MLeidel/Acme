@@ -29,29 +29,26 @@ neo.dat
         config data for user settings
             homepage, search engine, defaults font info, and Alt key snippets
 
-neo.py
+acme.py
 
         source code for Neo browser
 
 goodcookie.txt
 
-        contains list of cookie host names that delcookies.py
-        will NOT delete from the cookies database
+        contains list of cookie host names that you mantain.
+        These cookies will NOT be removed from the cookies database
+        whey you click "reset cookies". Cookies can also be deleted
+        from the "cookie manager" button.
 
 listcook.py
 
         prints out a list of unique active cookie host names  
         to help you manage the goodcookie.txt file
 
-delcookies.py
+clear_cache.py
 
-        deletes all active cookies from cookies.sqlite that
-        ARE NOT LISTED in goodcookie.txt
-
-delcache.py
-
-        REMOVE ALL persistent cache data for neo.py, neo.pyc  
-        usually found in .cache directory
+        REMOVE ALL persistent cache data for acme.py, acme.pyc  
+        usually found in user's .cache directory
         
 browser_history.txt
 
@@ -72,16 +69,17 @@ Neo has only 12 settings you can change:
     
 1. Your homepage URL (you have to pick one, the browser doesn't have one)
 2. The search engine with query string of your choice
-3. numeric - Limit of persistent history to allow
+3. numeric - Limit of persistent history items to allow
 4. yes/no - Jump to new tabs when opened
 5. Default browser font family name
 6. Default browser font size
 7. Default browser monospace font family name
 8. Default browser monospace font size
-9. Alt-1
-10. Alt-2
-11. Alt-3
-12. Alt-4
+9. Book marks path
+10. Alt-1
+11. Alt-2
+12. Alt-3
+13. Alt-4
     
 Alt-1 through 4 can be any kind of text you with to insert into an HTML input text field.  
 (I have certain strings that I get tired of typeing :)
@@ -95,16 +93,17 @@ Running on Windows WSL can be tricky, but this is what worked well for me.
     
         #!/usr/bin/bash
         
-        cd /mnt/c/neo
+        cd /mnt/c/Acme
         export GTK_THEME=Adwaita:dark
         export GTK_APPLICATION_PREFER_DARK_THEME=1
-        ./neo.pyc
+        ./amce.py
               
 3. In your Windows user directory create this command file:
         
-        wsl.exe --cd ~ -- bash -l -c "./runn.sh"
+        wsl.exe --cd ~ -- bash -l -c "./bashfilefrom#2.sh"
         
-4. Then create a shorcut on your desktop that will execute the cmd file in 3.
+4. Then create a shorcut on your desktop that will execute the cmd file in 3
+    which will run the a bash file you created in 2 which will run acme.py.
 
 ---
 
