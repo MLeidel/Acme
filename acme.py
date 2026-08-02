@@ -371,7 +371,7 @@ class BrowserTab(Gtk.VBox):
                 if kw in haystack:
                     decision.ignore()  # cancel the request
                     blockcount += 1
-                    self.browser.set_status(str(blockcount))
+                    self.browser.set_status(str(blockcount) + " ads blocked")
                     return
 
             decision.use()  # allow it

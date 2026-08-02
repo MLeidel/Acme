@@ -1,5 +1,10 @@
 # Internet Browser
 
+Well, I'm not Google or Mozilla. Still it was fun/interesting developing this custom browser.  
+The whole process ended up making me even more amazed at the amount of work and fine tuning that must go into developing a W3C complient Internet browser,
+especially considering all the crap (varieties of code...) that it's expectd to handle!
+
+
 ## Features
 
 ### Implements:
