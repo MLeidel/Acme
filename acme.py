@@ -64,12 +64,12 @@ class BrowserTab(Gtk.VBox):
 
         # # # # injecting css
         self.user_content = wk.UserContentManager()
-        css = """
+        css = '''
         ::selection {
             background-color: #ff007f; /* Custom background color for selections */
             color: #ffffff;            /* Text color */
         }
-        """
+        '''
         stylesheet = wk.UserStyleSheet.new(
             css,
             wk.UserContentInjectedFrames.ALL_FRAMES,
@@ -87,11 +87,12 @@ class BrowserTab(Gtk.VBox):
 
         settings = self.web_view.get_settings()
 
-        # spoof - many sites look for certain user agent settings
         settings.set_user_agent(
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/127.0.0.0 Safari/537.36"
         )
+
         settings.set_hardware_acceleration_policy(wk.HardwareAccelerationPolicy.NEVER) # leaving off
         settings.set_enable_javascript(True)
         settings.set_enable_html5_local_storage(True)
@@ -207,17 +208,41 @@ class BrowserTab(Gtk.VBox):
 
 
     def on_create(self, webview, navigation_action):
-        ''' Retrieve target URI if provided directly in the JS window.open call
-        no JS new external windows
-        WINDOW.OPEN JUST OPENS NEW TAB '''
-        uri = None
-        if navigation_action:
-            req = navigation_action.get_request()
-            if req:
-                uri = req.get_uri()
+        '''
+        Make JS window.open() work.
 
-        # Create the tab using your related_view pipeline (not using pipeline)
-        new_web_view = self.browser.open_new_tab(None, uri)
+        We return a WebKit "window" (a related WebView) so the page gets a valid
+        window object. We also decide whether to open it in a new GTK tab.
+        '''
+        req = None
+        uri = None
+
+        # Common case: window.open("https://...") gives us a NEW_WINDOW_ACTION
+        # and navigation_action contains the request.
+        if navigation_action:
+            try:
+                nav = navigation_action
+                req = nav.get_request()
+                if req:
+                    uri = req.get_uri()
+            except Exception:
+                uri = None
+
+        # Create a related popup view that shares the same session/context
+        popup_webview = wk.WebView.new_with_related_view(webview)
+
+        # Ensure popup can also open further windows if needed
+        # (optional but helps some sites)
+        popup_settings = popup_webview.get_settings()
+        popup_settings.set_enable_javascript(True)
+        popup_settings.set_javascript_can_open_windows_automatically(True)
+
+        # Put the popup WebView into a new tab (instead of a separate Gtk.Window)
+        # IMPORTANT: we must integrate the popup_webview into your existing Notebook UI.
+        self.browser.open_popup_as_tab(popup_webview, uri)
+
+        # Return the view so JS receives a valid window object
+        return popup_webview
 
 
     def sync_address_bar(self):
@@ -959,7 +984,7 @@ class Browser(Gtk.Window):
                 el.value += text;
             }  '''
 
-        js = f"""
+        js = f'''
         (function(text) {{
             function setNativeValue(el, value) {{
                 const proto = Object.getPrototypeOf(el);
@@ -992,7 +1017,7 @@ class Browser(Gtk.Window):
             el.dispatchEvent(new Event("input", {{ bubbles: true }}));
             el.dispatchEvent(new Event("change", {{ bubbles: true }}));
         }})({text!r});
-        """
+        '''
         current_page = self.notebook.get_current_page()
         self.tabs[current_page][0].web_view.evaluate_javascript(js, -1, None, None, None, None, None, None)
 
@@ -1009,6 +1034,55 @@ class Browser(Gtk.Window):
         dialog.format_secondary_text(message)
         dialog.run()
         dialog.destroy()
+
+    def open_popup_as_tab(self, popup_webview, uri=None):
+        '''
+        Insert an existing WebView (the WebKit popup view) into your notebook as a new tab.
+        This keeps window.open() working because WebKit gets a valid related view.
+        '''
+        label = Gtk.Label(label="Popup")
+        page_tuple = (BrowserTab(browser=self), label)
+
+        # Replace the BrowserTab's web_view with the popup_webview we were given
+        tab_widget = page_tuple[0]
+
+        # Remove the old web_view from its scrolled window (if already packed).
+        # Easiest: rebuild the tab container in place.
+        # Since your BrowserTab constructor already builds UI, we’ll swap web_view safely:
+        tab_widget.web_view = popup_webview
+
+        # Replace the content inside the existing scrolled window:
+        # BrowserTab created a scrolled_window with tab_widget.web_view inside.
+        # We can just re-add popup_webview to the scrolled window by rebuilding layout.
+        # Easiest reliable approach: create a lightweight container tab instead of swapping.
+        #
+        # So: we won't rely on the existing scrolled_window created in BrowserTab().__init__.
+        # We'll rebuild the tab UI for this special case:
+
+        # Destroy existing children and recreate minimal structure
+        for child in list(tab_widget.get_children()):
+            tab_widget.remove(child)
+
+        tab_widget.web_view.connect("notify::title", self.title_changed)
+        tab_widget.web_view.connect("load-changed", tab_widget.on_load_changed)
+
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.add(tab_widget.web_view)
+
+        tab_widget.pack_start(scrolled_window, True, True, 0)
+        tab_widget.show_all()
+
+        current_page = self.notebook.get_current_page()
+        self.tabs.insert(current_page + 1, page_tuple)
+        self.notebook.insert_page(tab_widget, label, current_page + 1)
+        if current_settings['gotab'].lower() == "yes":
+            self.notebook.set_current_page(current_page + 1)
+
+        if uri:
+            tab_widget.web_view.load_uri(uri)
+
+        return tab_widget
+
 
 # class #
 class HistoryWindow(Gtk.Window):
@@ -1173,7 +1247,7 @@ class SettingsDialog(Gtk.Dialog):
         self.show_all()
 
     def get_settings(self):
-        """Return the values from the dialog fields."""
+        '''Return the values from the dialog fields.'''
         settings = {}
         for key, entry in self.entries.items():
             settings[key] = entry.get_text().strip()
