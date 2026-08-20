@@ -2,8 +2,9 @@
 
 Well, I'm not Google or Mozilla. Still it was fun/interesting developing this custom browser.  
 The whole process ended up making me even more amazed at the amount of work and fine tuning that must go into developing a 
-W3C complient Internet browser, especially considering all the crap (varieties of code...) that it's expectd to handle!
-And this is just python with C bindings doing the real work.
+W3C complient Internet browser. WebKitGtk is still working out bugs - this implementation may crash on certain sites.
+
+My first home Internet was called "Roadrunner". With that in mind, I named this browser "Acme" :)
 
 ## Features
 
@@ -15,6 +16,7 @@ And this is just python with C bindings doing the real work.
         cache management
         user settings
         window geometry
+        agressive ad blocking
         
 ### Does not implement:
 
