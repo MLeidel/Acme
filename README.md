@@ -38,7 +38,7 @@ neo.dat
 
 acme.py
 
-        source code for Neo browser
+        source code for Acme browser
 
 goodcookie.txt
 
@@ -72,7 +72,7 @@ sudo apt install gstreamer1.0-plugins-ugly gstreamer1.0-libav
 
 ## A note about settings
 
-Neo has only 12 settings you can change:
+Acme has only 12 settings you can change:
     
 1. Your homepage URL (you have to pick one, the browser doesn't have one)
 2. The search engine with query string of your choice
@@ -115,7 +115,7 @@ Running on Windows WSL can be tricky, but this is what worked well for me.
 ---
 
 \* Bookmarks  
-Bookmarking is purposely left out of Neo.  
+Bookmarking is purposely left out of Acme.  
 Why? I do not like/use them.  
 Instead, clicking the bookmark's button appends them to a file  
 the path of which you can specify in settings.
