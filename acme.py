@@ -2,16 +2,15 @@
 # -*- coding: utf-8 -*-
 
 import os
-
 # Safe environment flags to prevent GTK driver crashes
 os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
 os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
 # # Disable JSC JIT compiler (prevents WebAssembly segfaults on heavy crypto sites)
-os.environ["JSC_useJIT"] = "false"  # leaving off for now
-# Only uncomment this if Spectrum crashes without it:
+os.environ["JSC_useJIT"] = "True"  # leaving off for now
 # os.environ["WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS"] = "1"
 
 import sys
+import faulthandler
 from pathlib import Path
 import shutil
 import gi
@@ -23,6 +22,7 @@ warnings.filterwarnings(
     category=DeprecationWarning,
     message="WebKit2.NavigationPolicyDecision.get_request is deprecated"
 )  # in on_decide_policy for add blocking
+
 
 # Get the directory where this script is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -57,8 +57,9 @@ blockcount = 0  # for addblocking
 
 # class #
 class BrowserTab(Gtk.VBox):
+    ''' Re-sequenced Init 082226 '''
 
-    def __init__(self, browser=None, *args, **kwargs):
+    def __init__(self, browser, *args, **kwargs):
         super(BrowserTab, self).__init__(*args, **kwargs)
 
         self.browser = browser
@@ -81,47 +82,34 @@ class BrowserTab(Gtk.VBox):
 
         self.user_content.add_style_sheet(stylesheet)
 
-        self.web_view = wk.WebView.new_with_user_content_manager(self.user_content)
-        context = wk.WebContext.get_default()  # comment ?
-        self.web_view = wk.WebView.new_with_context(context)  # comment ?
+        self.web_view = wk.WebView.new_with_user_content_manager(self.user_content)  ## CREATE web_view!
 
+        context = wk.WebContext.get_default()
 
-        settings = self.web_view.get_settings()
+        settings = self.web_view.get_settings()  # now the settings
 
         settings.set_user_agent(
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
         )
 
-        settings.set_hardware_acceleration_policy(wk.HardwareAccelerationPolicy.NEVER) # leaving off
+        settings.set_hardware_acceleration_policy(
+            wk.HardwareAccelerationPolicy.NEVER
+        )
         settings.set_enable_javascript(True)
         settings.set_enable_html5_local_storage(True)
-
         settings.set_enable_developer_extras(True)
         settings.set_javascript_can_open_windows_automatically(True)
-        settings.set_property("default-font-family", current_settings['deffont'])      # get these from neo.dat
-        settings.set_property("default-font-size", int(current_settings['defsize']))
-        settings.set_property("monospace-font-family", current_settings['monfont'])
-        settings.set_property("default-monospace-font-size", int(current_settings['monsize']))
 
-
-        # settings.set_enable_webgl(False)  # for webkit bug crash
-        # settings.set_enable_accelerated_2d_canvas(False)  # for crash webkit bug
-
+        settings.set_property("default-font-family", current_settings["deffont"])
+        settings.set_property("default-font-size", int(current_settings["defsize"]))
+        settings.set_property("monospace-font-family", current_settings["monfont"])
+        settings.set_property("default-monospace-font-size", int(current_settings["monsize"]))
 
         settings.set_allow_universal_access_from_file_urls(True)
         settings.set_allow_file_access_from_file_urls(True)
-
-        settings.set_enable_write_console_messages_to_stdout(False)    # Console Messages for debugging
-
-        self.web_view = wk.WebView.new_with_settings(settings)
-
+        settings.set_enable_write_console_messages_to_stdout(False)
 
         # # # # #
-
-        if start_url != None:
-            self.web_view.load_uri(start_url)
-        else:
-            self.web_view.load_uri(current_settings['homepage'])
 
         self.web_view.connect("decide-policy", self.on_decide_policy)
         self.web_view.connect("mouse-target-changed", self.displayuri)
@@ -137,10 +125,6 @@ class BrowserTab(Gtk.VBox):
         # Inspector setup
         inspector = self.web_view.get_inspector()
 
-
-        self.show()
-
-        button_go = Gtk.ToolButton(stock_id=Gtk.STOCK_APPLY)
         self.button_back = Gtk.ToolButton(stock_id=Gtk.STOCK_GO_BACK)
         self.button_close_tab = Gtk.ToolButton(stock_id=Gtk.STOCK_CLOSE)
         self.button_close_tab.set_tooltip_text("Close Tab (Esc)")
@@ -150,11 +134,24 @@ class BrowserTab(Gtk.VBox):
         self.button_new_tab = Gtk.ToolButton(stock_id=Gtk.STOCK_ADD)
         self.button_new_tab.set_tooltip_text("New Tab (Homepage)")
 
+
         self.address_bar = Gtk.Entry()
 
-        button_go.connect("clicked", self.load_page)
         self.address_bar.connect("activate", self.load_page)
         self.address_bar.connect("key-press-event", self.on_address_key_press)
+
+        self.button_bookmarx = Gtk.ToolButton()
+        self.button_bookmarx.set_icon_name("bookmark-new-symbolic")    # BOOKMARKS
+        self.button_bookmarx.set_tooltip_text("Bookmarks")            # BOOKMARKS
+        self.button_bookmarx.connect("clicked", self.browser.save_active_tab_info)    # BOOKMARKS
+
+        self.button_find = Gtk.ToolButton(stock_id=Gtk.STOCK_FIND)   # FIND BUTTON
+        self.button_find.set_tooltip_text("Find Ctrl+F")            # FIND BUTTON
+        self.button_find.connect("clicked", self.browser.raise_find_dialog)      # FIND BUTTON
+
+        self.button_printer = Gtk.ToolButton(stock_id=Gtk.STOCK_PRINT)
+        self.button_printer.set_tooltip_text("Print")
+        self.button_printer.connect("clicked", self.browser.on_print_clicked)
 
         self.button_back.connect("clicked", lambda x: self.web_view.go_back())
         self.button_close_tab.connect("clicked", browser.close_current_tab)
@@ -171,7 +168,11 @@ class BrowserTab(Gtk.VBox):
         url_box.pack_start(self.button_home, False, False, 0)
         url_box.pack_start(self.button_new_tab, False, False, 0)
         url_box.pack_start(self.address_bar, True, True, 0)
-        url_box.pack_start(button_go, False, False, 0)
+
+        url_box.pack_start(self.button_bookmarx, False, False, 0)    # BOOKMARKS
+        url_box.pack_start(self.button_find, False, False, 0)  # FIND BUTTON
+        url_box.pack_start(self.button_printer, False, False, 0)
+
         self.pack_start(url_box, False, False, 0)   # move here
 
         scrolled_window = Gtk.ScrolledWindow()
@@ -200,11 +201,17 @@ class BrowserTab(Gtk.VBox):
         self.pack_start(find_box, False, False, 0)
         self.pack_start(scrolled_window, True, True, 0)
 
-        self.find_box.set_visible(False)
 
-        url_box.show_all()
-        scrolled_window.show_all()
+        self.show_all()
+        # breakpoint()
+        if start_url is not None:
+            self.web_view.load_uri(start_url)
+        else:
+            self.web_view.load_uri(current_settings["homepage"])
+
+        self.find_box.set_visible(False)
         GLib.idle_add(self.web_view.grab_focus)
+
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -240,21 +247,25 @@ class BrowserTab(Gtk.VBox):
             except Exception:
                 uri = None
 
-        # Create a related popup view that shares the same session/context
-        popup_webview = wk.WebView.new_with_related_view(webview)
+        if self.browser:
+            self.browser.open_new_tab(None, uri)
+        return
 
-        # Ensure popup can also open further windows if needed
-        # (optional but helps some sites)
-        popup_settings = popup_webview.get_settings()
-        popup_settings.set_enable_javascript(True)
-        popup_settings.set_javascript_can_open_windows_automatically(True)
+        # # Create a related popup view that shares the same session/context
+        # popup_webview = wk.WebView.new_with_related_view(webview)
 
-        # Put the popup WebView into a new tab (instead of a separate Gtk.Window)
-        # IMPORTANT: we must integrate the popup_webview into your existing Notebook UI.
-        self.browser.open_popup_as_tab(popup_webview, uri)
+        # # Ensure popup can also open further windows if needed
+        # # (optional but helps some sites)
+        # popup_settings = popup_webview.get_settings()
+        # popup_settings.set_enable_javascript(True)
+        # popup_settings.set_javascript_can_open_windows_automatically(True)
 
-        # Return the view so JS receives a valid window object
-        return popup_webview
+        # # Put the popup WebView into a new tab (instead of a separate Gtk.Window)
+        # # IMPORTANT: we must integrate the popup_webview into your existing Notebook UI.
+        # self.browser.open_popup_as_tab(popup_webview, uri)
+
+        # # Return the view so JS receives a valid window object
+        # return popup_webview
 
 
     def sync_address_bar(self):
@@ -465,32 +476,25 @@ class Browser(Gtk.Window):
 
         self.tool_bar = Gtk.HBox()
 
-        self.button_bookmarx = Gtk.ToolButton()
-        self.button_bookmarx.set_icon_name("bookmark-new-symbolic")
-        self.button_bookmarx.set_tooltip_text("Bookmarks")
         self.button_settings = Gtk.ToolButton()
         self.button_settings.set_icon_name("emblem-system")
         self.button_settings.set_tooltip_text("User Settings")
         self.button_reset_cookies = Gtk.ToolButton()
-        self.button_reset_cookies.set_icon_name("user-trash-symbolic")
-        self.button_reset_cookies.set_tooltip_text("Reset Cookies")
+        self.button_reset_cookies.set_icon_name("emblem-synchronizing-symbolic")
+        self.button_reset_cookies.set_tooltip_text("Reset to Good Cookies")
 
         self.button_history_all = Gtk.ToolButton()
-        self.button_history_all.set_icon_name("edit-clear")
+        self.button_history_all.set_icon_name("edit-clear-symbolic")
         self.button_history_all.set_tooltip_text("Clear all history")
 
-
-        self.button_find = Gtk.ToolButton(stock_id=Gtk.STOCK_FIND)
-        self.button_find.set_tooltip_text("Find Ctrl+F")
         self.button_history = Gtk.ToolButton()
         self.button_history.set_icon_name("document-open-recent-symbolic")
         self.button_history.set_tooltip_text("View History (Ctrl+H)")
-        self.button_cookies = Gtk.ToolButton(stock_id=Gtk.STOCK_PROPERTIES)
+        self.button_cookies = Gtk.ToolButton()
+        self.button_cookies.set_icon_name("emblem-system-symbolic")
         self.button_cookies.set_tooltip_text("Cookie Manager")
-        self.button_printer = Gtk.ToolButton(stock_id=Gtk.STOCK_PRINT)
-        self.button_printer.set_tooltip_text("Print")
         self.button_devtools = Gtk.ToolButton()
-        self.button_devtools.set_icon_name("utilities-terminal")
+        self.button_devtools.set_icon_name("applications-utilities-symbolic")
         self.button_devtools.set_tooltip_text("Developer Tools")
         self.button_blocker = Gtk.ToolButton()
         self.button_blocker.set_icon_name("security-high-symbolic")
@@ -499,25 +503,20 @@ class Browser(Gtk.Window):
         self.button_reset_cookies.connect("clicked", self.on_reset_cookies)
         self.button_history_all.connect("clicked", self.on_history_all)
 
-        self.button_bookmarx.connect("clicked", self.save_active_tab_info)
         self.button_settings.connect("clicked", self.open_settings_dialog)
-        self.button_find.connect("clicked", self.raise_find_dialog)
         self.button_cookies.connect("clicked", self.get_all_cookies)
-        self.button_printer.connect("clicked", self.on_print_clicked)
         self.button_devtools.connect("clicked", self.on_devtools_clicked)
         self.button_history.connect("clicked", self.open_persist_history_dialog)
         self.button_blocker.connect("clicked", self.toggle_blocker)
 
         self.tool_bar.pack_start(self.button_settings, False, False, 0)
         self.tool_bar.pack_start(self.button_devtools, False, False, 0)
-        self.tool_bar.pack_start(self.button_reset_cookies, False, False, 0)
-        self.tool_bar.pack_start(self.button_history_all, False, False, 0)
         self.tool_bar.pack_start(self.button_blocker, False, False, 0)
-        self.tool_bar.pack_start(self.button_bookmarx, False, False, 0)
         self.tool_bar.pack_start(self.button_cookies, False, False, 0)
+        self.tool_bar.pack_start(self.button_reset_cookies, False, False, 0)
         self.tool_bar.pack_start(self.button_history, False, False, 0)
-        self.tool_bar.pack_start(self.button_find, False, False, 0)
-        self.tool_bar.pack_start(self.button_printer, False, False, 0)
+        self.tool_bar.pack_start(self.button_history_all, False, False, 0)
+
 
         self.status_label = Gtk.Label(label="")
         self.status_label.set_halign(Gtk.Align.START)
@@ -581,48 +580,65 @@ class Browser(Gtk.Window):
             self.set_status("Ad Blocker turned ON")
 
 
+    def show_yesno_dialog(self, title, message):
+        ''' use for confirmations '''
+        dialog = Gtk.MessageDialog(
+            transient_for=self,
+            flags=0,
+            message_type=Gtk.MessageType.QUESTION,
+            buttons=Gtk.ButtonsType.YES_NO,
+            text=title,
+        )
+        dialog.format_secondary_text(message)
+        response = dialog.run()
+        dialog.destroy()
+        return response == Gtk.ResponseType.YES
+
+
     def on_reset_cookies(self, e=None):
-        ''' User clicked "Reset All" - remove history, remove cache, reset cookies
-        Files effected: browser_history.txt, cookies.sqlite, ~/.cache/acme.py, ~/.cache/acme.pyc '''
+        ''' User clicked reset cookies '''
+        if self.show_yesno_dialog("Confirm", "Remove all but good cookies now?"):
+            # Cookies Reset
+            domains = set()
+            with open("goodcookie.txt", "r", encoding="utf-8") as f:
+                for line in f:
+                    s = line.strip()
+                    if not s or s.startswith("#"):
+                        continue
+                    domains.add(s)
 
-        # Cookies Reset
-        domains = set()
-        with open("goodcookie.txt", "r", encoding="utf-8") as f:
-            for line in f:
-                s = line.strip()
-                if not s or s.startswith("#"):
-                    continue
-                domains.add(s)
+            if not domains:
+                print("No domains loaded. Refusing to delete all cookies.")
+                sys.exit(1)
 
-        if not domains:
-            print("No domains loaded. Refusing to delete all cookies.")
-            sys.exit(1)
+            placeholders = ",".join(["?"] * len(domains))
 
-        placeholders = ",".join(["?"] * len(domains))
+            # Delete cookies whose host is NOT in the allowed list.
+            # Keep the exact string matches as provided in the file.
+            sql = f"DELETE FROM moz_cookies WHERE host NOT IN ({placeholders})"
 
-        # Delete cookies whose host is NOT in the allowed list.
-        # Keep the exact string matches as provided in the file.
-        sql = f"DELETE FROM moz_cookies WHERE host NOT IN ({placeholders})"
+            conn = sqlite3.connect("cookies.sqlite")
+            try:
+                cur = conn.cursor()
+                cur.execute(sql, tuple(domains))
+                conn.commit()
+                print(f"Deleted {cur.rowcount} rows from moz_cookies.")
+            finally:
+                conn.close()
 
-        conn = sqlite3.connect("cookies.sqlite")
-        try:
-            cur = conn.cursor()
-            cur.execute(sql, tuple(domains))
-            conn.commit()
-            print(f"Deleted {cur.rowcount} rows from moz_cookies.")
-        finally:
-            conn.close()
+            self.set_status("* cookies reset to only goodcookies *")
+            self.show_ok_dialog("Confirmed", "Cookies have been reset.")
 
-        self.set_status("* cookies reset to only goodcookies *")
 
 
     def on_history_all(self, e=None):
         ''' Remove all history (browser_history.txt) '''
-        with open("browser_history.txt", "w", encoding="utf-8") as fout:
-            fout.write("history\n")
+        if self.show_yesno_dialog("Confirm", "Are you sure you want to clear history?"):
+            with open("browser_history.txt", "w", encoding="utf-8") as fout:
+                fout.write("history\n")
 
-        self.set_status("* History Cleared *")
-        self.show_ok_dialog("Confirmed", "History Cleared")
+            self.set_status("* History Cleared *")
+            self.show_ok_dialog("Confirmed", "History Cleared")
 
 
     def set_status(self, text):
@@ -1047,53 +1063,53 @@ class Browser(Gtk.Window):
         dialog.run()
         dialog.destroy()
 
-    def open_popup_as_tab(self, popup_webview, uri=None):
-        '''
-        Insert an existing WebView (the WebKit popup view) into your notebook as a new tab.
-        This keeps window.open() working because WebKit gets a valid related view.
-        '''
-        label = Gtk.Label(label="Popup")
-        page_tuple = (BrowserTab(browser=self), label)
+    # def open_popup_as_tab(self, popup_webview, uri=None):
+    #     '''
+    #     Insert an existing WebView (the WebKit popup view) into your notebook as a new tab.
+    #     This keeps window.open() working because WebKit gets a valid related view.
+    #     '''
+    #     label = Gtk.Label(label="Popup")
+    #     page_tuple = (BrowserTab(browser=self), label)
 
-        # Replace the BrowserTab's web_view with the popup_webview we were given
-        tab_widget = page_tuple[0]
+    #     # Replace the BrowserTab's web_view with the popup_webview we were given
+    #     tab_widget = page_tuple[0]
 
-        # Remove the old web_view from its scrolled window (if already packed).
-        # Easiest: rebuild the tab container in place.
-        # Since your BrowserTab constructor already builds UI, we’ll swap web_view safely:
-        tab_widget.web_view = popup_webview
+    #     # Remove the old web_view from its scrolled window (if already packed).
+    #     # Easiest: rebuild the tab container in place.
+    #     # Since your BrowserTab constructor already builds UI, we’ll swap web_view safely:
+    #     tab_widget.web_view = popup_webview
 
-        # Replace the content inside the existing scrolled window:
-        # BrowserTab created a scrolled_window with tab_widget.web_view inside.
-        # We can just re-add popup_webview to the scrolled window by rebuilding layout.
-        # Easiest reliable approach: create a lightweight container tab instead of swapping.
-        #
-        # So: we won't rely on the existing scrolled_window created in BrowserTab().__init__.
-        # We'll rebuild the tab UI for this special case:
+    #     # Replace the content inside the existing scrolled window:
+    #     # BrowserTab created a scrolled_window with tab_widget.web_view inside.
+    #     # We can just re-add popup_webview to the scrolled window by rebuilding layout.
+    #     # Easiest reliable approach: create a lightweight container tab instead of swapping.
+    #     #
+    #     # So: we won't rely on the existing scrolled_window created in BrowserTab().__init__.
+    #     # We'll rebuild the tab UI for this special case:
 
-        # Destroy existing children and recreate minimal structure
-        for child in list(tab_widget.get_children()):
-            tab_widget.remove(child)
+    #     # Destroy existing children and recreate minimal structure
+    #     for child in list(tab_widget.get_children()):
+    #         tab_widget.remove(child)
 
-        tab_widget.web_view.connect("notify::title", self.title_changed)
-        tab_widget.web_view.connect("load-changed", tab_widget.on_load_changed)
+    #     tab_widget.web_view.connect("notify::title", self.title_changed)
+    #     tab_widget.web_view.connect("load-changed", tab_widget.on_load_changed)
 
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.add(tab_widget.web_view)
+    #     scrolled_window = Gtk.ScrolledWindow()
+    #     scrolled_window.add(tab_widget.web_view)
 
-        tab_widget.pack_start(scrolled_window, True, True, 0)
-        tab_widget.show_all()
+    #     tab_widget.pack_start(scrolled_window, True, True, 0)
+    #     tab_widget.show_all()
 
-        current_page = self.notebook.get_current_page()
-        self.tabs.insert(current_page + 1, page_tuple)
-        self.notebook.insert_page(tab_widget, label, current_page + 1)
-        if current_settings['gotab'].lower() == "yes":
-            self.notebook.set_current_page(current_page + 1)
+    #     current_page = self.notebook.get_current_page()
+    #     self.tabs.insert(current_page + 1, page_tuple)
+    #     self.notebook.insert_page(tab_widget, label, current_page + 1)
+    #     if current_settings['gotab'].lower() == "yes":
+    #         self.notebook.set_current_page(current_page + 1)
 
-        if uri:
-            tab_widget.web_view.load_uri(uri)
+    #     if uri:
+    #         tab_widget.web_view.load_uri(uri)
 
-        return tab_widget
+    #     return tab_widget
 
 
 # class #
@@ -1405,7 +1421,7 @@ BLOCK_SUBSTRINGS = [
     "/click",
     "/impression",
     "/imps",
-    "/collect?",             # analytics pixel endpoints
+    "/collect?",  # analytics pixel endpoints
     "/pixel?",
     "/event?",
     "/events?",
@@ -1451,5 +1467,8 @@ if __name__ == "__main__":
     if gx > 0 or gy > 0:
         browser.move(gx, gy)
 
-    Gtk.main()
+    os.remove("crash.log")
+    log = open("crash.log", "w")
+    print(faulthandler.enable(file=log))
 
+    Gtk.main()
