@@ -6,7 +6,7 @@ import os
 os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
 os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
 # # Disable JSC JIT compiler (prevents WebAssembly segfaults on heavy crypto sites)
-os.environ["JSC_useJIT"] = "True"  # leaving off for now
+os.environ["JSC_useJIT"] = "false"  # leaving off for now
 # os.environ["WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS"] = "1"
 
 import sys
@@ -1467,7 +1467,7 @@ if __name__ == "__main__":
     if gx > 0 or gy > 0:
         browser.move(gx, gy)
 
-    os.remove("crash.log")
+    # os.remove("crash.log")
     log = open("crash.log", "w")
     print(faulthandler.enable(file=log))
 
