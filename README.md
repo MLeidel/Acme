@@ -1,10 +1,14 @@
 # Internet Browser
 
-Well, I'm not Google or Mozilla. Still it was fun/interesting developing this custom browser.  
-The whole process ended up making me even more amazed at the amount of work and fine tuning that must go into developing a 
-W3C complient Internet browser. WebKitGtk is still working out bugs - this implementation may crash on certain sites.
+Acme is an Internet browser developed in Python. The engin is WebKitGtk.
 
-My first home Internet was called "Roadrunner". With that in mind, I named this browser "Acme" :)
+WebKitGtk is still working out bugs - this implementation may crash on certain sites.
+For instance, it won't pass the "Cloudflare" screening you find on many sites.
+
+Is it secure?
+    It is as secure as the sites you direct it too. There are no hidden adgendas built into the browser.
+
+My first Internet home was called "Roadrunner". With that in mind, I named this browser "Acme" :)
 
 ## Features
 
@@ -12,6 +16,7 @@ My first home Internet was called "Roadrunner". With that in mind, I named this 
 
         developer tools
         persistent history
+        bookmarking
         cookie management
         cache management
         user settings
@@ -21,10 +26,8 @@ My first home Internet was called "Roadrunner". With that in mind, I named this 
 ### Does not implement:
 
         extentions
-        bookmarks*
         password manager or form data
-        (superficial?) enhancement settings
-       
+
 ## files
 
 cookies.sqlite
@@ -89,7 +92,6 @@ Acme has only 12 settings you can change:
 13. Alt-4
     
 Alt-1 through 4 can be any kind of text you with to insert into an HTML input text field.  
-(I have certain strings that I get tired of typeing :)
 
 ## Running on Windows WSL
 
@@ -114,13 +116,3 @@ Running on Windows WSL can be tricky, but this is what worked well for me.
 
 ---
 
-\* Bookmarks  
-Bookmarking is purposely left out of Acme.  
-Why? I do not like/use them.  
-Instead, clicking the bookmark's button appends them to a file  
-the path of which you can specify in settings.
-
-
-
-
----

@@ -6,7 +6,7 @@ import os
 os.environ["WEBKIT_DISABLE_COMPOSITING_MODE"] = "1"
 os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
 # # Disable JSC JIT compiler (prevents WebAssembly segfaults on heavy crypto sites)
-os.environ["JSC_useJIT"] = "false"  # leaving off for now
+os.environ["JSC_useJIT"] = "False"  # leaving off for now
 # os.environ["WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS"] = "1"
 
 import sys
@@ -499,6 +499,9 @@ class Browser(Gtk.Window):
         self.button_blocker = Gtk.ToolButton()
         self.button_blocker.set_icon_name("security-high-symbolic")
         self.button_blocker.set_tooltip_text("Toggle Pop-up Ad Blocking")
+        self.button_bookmarks = Gtk.ToolButton()
+        self.button_bookmarks.set_icon_name("user-bookmarks")
+        self.button_bookmarks.set_tooltip_text("Open Bookmarks")
 
         self.button_reset_cookies.connect("clicked", self.on_reset_cookies)
         self.button_history_all.connect("clicked", self.on_history_all)
@@ -508,6 +511,7 @@ class Browser(Gtk.Window):
         self.button_devtools.connect("clicked", self.on_devtools_clicked)
         self.button_history.connect("clicked", self.open_persist_history_dialog)
         self.button_blocker.connect("clicked", self.toggle_blocker)
+        self.button_bookmarks.connect("clicked", self.open_persist_bookmarks_dialog)
 
         self.tool_bar.pack_start(self.button_settings, False, False, 0)
         self.tool_bar.pack_start(self.button_devtools, False, False, 0)
@@ -516,6 +520,7 @@ class Browser(Gtk.Window):
         self.tool_bar.pack_start(self.button_reset_cookies, False, False, 0)
         self.tool_bar.pack_start(self.button_history, False, False, 0)
         self.tool_bar.pack_start(self.button_history_all, False, False, 0)
+        self.tool_bar.pack_start(self.button_bookmarks, False, False, 0)
 
 
         self.status_label = Gtk.Label(label="")
@@ -675,11 +680,17 @@ class Browser(Gtk.Window):
 
     def open_persist_history_dialog(self, e=None):
         # ("ctrl shift H")
-        win = HistoryWindow("browser_history.txt", on_select_url=self.open_in_browser)
+        win = DialogWindow("browser_history.txt", "Browser History", on_select_url=self.open_in_browser)
         win.connect("destroy", lambda w: None)
         win.set_keep_above(True)
         win.show_all()
 
+    def open_persist_bookmarks_dialog(self, e=None):
+        ''' Open the Bookmarks Dialog '''
+        win = DialogWindow("bkmarks.txt", "Bookmarks", on_select_url=self.open_in_browser)
+        win.connect("destroy", lambda w: None)
+        win.set_keep_above(True)
+        win.show_all()
 
     def on_key_press(self, widget, event):
         ''' Direct actions from keypress combinations '''
@@ -1113,12 +1124,12 @@ class Browser(Gtk.Window):
 
 
 # class #
-class HistoryWindow(Gtk.Window):
-    def __init__(self, history_file, on_select_url=None):
-        super().__init__(title="Browser History")
-        self.set_default_size(600, 400)
+class DialogWindow(Gtk.Window):
+    def __init__(self, input_file, win_title, on_select_url=None):
+        super().__init__(title=win_title)
+        self.set_default_size(600, 500)
 
-        self. history_file = history_file
+        self.input_file = input_file
         self.on_select_url = on_select_url
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -1153,16 +1164,16 @@ class HistoryWindow(Gtk.Window):
         self.close_button.connect("clicked", lambda btn: self.destroy())
         button_box.pack_start(self.close_button, False, False, 0)
 
-        self.load_history()
+        self.load_input_file()
 
-    def load_history(self):
+    def load_input_file(self):
         self.store.clear()
 
-        if not os.path.exists(self.history_file):
+        if not os.path.exists(self.input_file):
             return
 
         seen = set()
-        with open(self.history_file, "r", encoding="utf-8") as f:
+        with open(self.input_file, "r", encoding="utf-8") as f:
             for line in f:
                 url = line.strip()
                 if not url:
@@ -1192,16 +1203,22 @@ class HistoryWindow(Gtk.Window):
     def on_open_clicked(self, button):
         url = self.get_selected_url()
         if url and self.on_select_url:
+            if self.input_file == "bkmarks.txt":
+                p = url.find("> ") + 2
+                url = url[p:]
             self.on_select_url(url)
 
     def on_row_activated(self, treeview, path, column):
         url = self.get_selected_url()
         if url and self.on_select_url:
+            if self.input_file == "bkmarks.txt":
+                p = url.find("> ") + 2
+                url = url[p:]
             self.on_select_url(url)
 
     def on_reload_clicked(self, button):
         ''' not used '''
-        self.load_history()
+        pass
 
 # class #
 class SettingsDialog(Gtk.Dialog):
