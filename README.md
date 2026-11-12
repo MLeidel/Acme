@@ -1,6 +1,6 @@
 # Internet Browser
 
-Acme is an Internet browser developed in Python. The engin is WebKitGtk.
+**Acme** is an Internet browser developed in Python. The engin is WebKitGtk.
 
 WebKitGtk is still working out bugs - this implementation may crash on certain sites.
 For instance, it won't pass the "Cloudflare" screening you find on many sites.
