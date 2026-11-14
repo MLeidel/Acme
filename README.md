@@ -1,12 +1,10 @@
-# Internet Browser
+# Internet Browser for Linux
 
 **Acme** is an Internet browser developed in Python. The engin is WebKitGtk.
 
-WebKitGtk is still working out bugs - this implementation may crash on certain sites.
-For instance, it won't pass the "Cloudflare" screening you find on many sites.
-
 Is it secure?
     It is as secure as the sites you direct it too. There are no hidden adgendas built into the browser.
+    Acme is just python code that you can look at and change.
 
 My first Internet home was called "Roadrunner". With that in mind, I named this browser "Acme" :)
 
@@ -22,12 +20,15 @@ My first Internet home was called "Roadrunner". With that in mind, I named this 
         user settings
         window geometry
         agressive ad blocking
+        downloads (with right-click link)
+        standard streaming media like Youtube, Audio files, ...
         
 ### Does not implement:
 
         extentions
         password manager or form data
-
+        proprietary streaming like Prime Video, HBO, ...
+        
 ## files
 
 cookies.sqlite

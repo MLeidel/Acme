@@ -235,7 +235,7 @@ class BrowserTab(Gtk.VBox):
 
         self.web_view = wk.WebView.new_with_user_content_manager(self.user_content)
 
-        # REWROTE SETTINGS ON NOV 12 2026
+        # RE-WROTE SETTINGS ON NOV 12 2026
         # for Video and Downloads
 
         settings = self.web_view.get_settings()
@@ -629,6 +629,59 @@ class BrowserTab(Gtk.VBox):
         )
         context_menu.append(item)
         return False
+
+    def stop_media(self):
+        """Pause and release HTML5 audio/video before closing the tab."""
+
+        try:
+            self.web_view.stop_loading()
+        except Exception:
+            pass
+
+        javascript = r"""
+        (() => {
+            for (const media of document.querySelectorAll("audio, video")) {
+                try {
+                    media.pause();
+                    media.removeAttribute("src");
+                    media.src = "";
+                    media.load();
+                } catch (e) {
+                    console.error("Could not stop media:", e);
+                }
+            }
+
+            // Stop media elements in same-origin frames where possible
+            for (const frame of document.querySelectorAll("iframe")) {
+                try {
+                    const doc = frame.contentDocument;
+                    if (!doc) continue;
+
+                    for (const media of doc.querySelectorAll("audio, video")) {
+                        media.pause();
+                        media.removeAttribute("src");
+                        media.src = "";
+                        media.load();
+                    }
+                } catch (e) {
+                    // Cross-origin frames cannot be accessed
+                }
+            }
+        })();
+        """
+
+        try:
+            self.web_view.evaluate_javascript(
+                javascript,
+                -1,
+                None,
+                None,
+                None,
+                None,
+                None
+            )
+        except Exception as e:
+            print("Unable to stop page media:", e)
 
 # ------------------------------ Browser ------------------------------
 class Browser(Gtk.Window):
@@ -1102,14 +1155,44 @@ class Browser(Gtk.Window):
         tab.web_view.connect("notify::title", self.title_changed)
         return tab
 
-    def close_current_tab(self, widget):
+    # def close_current_tab(self, widget):
+    #     if self.notebook.get_n_pages() <= 1:
+    #         return
+    #     page = self.notebook.get_current_page()
+    #     if page < 0:
+    #         return
+    #     current_tab = self.tabs.pop(page)
+    #     self.notebook.remove(current_tab[0])
+
+    # replaced above to allow proper media handling
+    def close_current_tab(self, widget=None):
         if self.notebook.get_n_pages() <= 1:
             return
+
         page = self.notebook.get_current_page()
-        if page < 0:
+        if page < 0 or page >= len(self.tabs):
             return
-        current_tab = self.tabs.pop(page)
-        self.notebook.remove(current_tab[0])
+
+        tab, label = self.tabs.pop(page)
+
+        tab.stop_media()
+        self.notebook.remove(tab)
+
+        def destroy_tab():
+            try:
+                tab.web_view.destroy()
+            except Exception:
+                pass
+
+            try:
+                tab.destroy()
+            except Exception:
+                pass
+
+            return False
+
+        GLib.timeout_add(100, destroy_tab)
+
 
     def open_new_tab(self, widget, uri=None):
         current_page = self.notebook.get_current_page()
